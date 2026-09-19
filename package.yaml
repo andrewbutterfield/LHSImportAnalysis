@@ -60,6 +60,6 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - durectory
+    - directory
     - lhsimports
 
