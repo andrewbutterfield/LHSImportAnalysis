@@ -1,0 +1,59 @@
+\documentclass[fleqn,10pt]{report}
+\usepackage[a4paper, margin=1.1in]{geometry}
+\usepackage{amssymb,amsmath}
+%\usepackage{doc/....}
+\usepackage{mathpartir}
+\usepackage{listings}
+\usepackage{doc/lstlhs}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\def\includepicture#1{\includegraphics{#1.eps}}
+\usepackage{hyperref}
+
+\parindent=0pt % I hate first line indentation
+\parskip=3pt   % I like a visual white gap between paragraphs
+
+\def\lhsimport{\textit{\textsf{LHS Import}}}
+\def\litStackVersion{0.0.1.0}
+
+\author{
+Andrew Butterfield
+\\
+{\small \copyright\ 2026}
+}
+\title{
+  \lhsimport: Display \texttt{.lhs} File Imports
+  \\(v\litStackVersion)
+}
+\date{
+\today
+}
+
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\chapter{\lhsimport\ Introduction}
+
+A template for literate programming.
+We cite \cite{MathHbk:05,conf/utp/Butterfield10,conf/utp/Butterfield12}
+
+\chapter{\lhsimport\ Application}
+
+\input{app/Main.lhs}
+
+\chapter{\lhsimport\ Libraries}
+
+\input{src/ReadImports.lhs}
+
+\chapter{\lhsimport\ Tests}
+
+% \newpage
+% \input{test/....lhs}
+
+\bibliographystyle{alpha}
+\bibliography{MAIN}
+
+\end{document}
