@@ -28,6 +28,7 @@ name_version :: [Char] ; name_version = progName++" "++version
 main :: IO ()
 main
   = do putStrLn name_version
-       _ <- readImports
+       imports <- readImports
+       putStrLn ("imports: "++show imports)
        putStrLn "Done."
 \end{code}
