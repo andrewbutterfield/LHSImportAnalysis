@@ -13,6 +13,11 @@ where
 import System.Directory 
 import System.FilePath
 
+import Data.Set(Set)
+import qualified Data.Set as S
+import Data.Map(Map)
+import qualified Data.Map as M
+
 import ParseModuleImports
 
 --import Debug.Trace
@@ -21,15 +26,18 @@ import ParseModuleImports
 
 
 \begin{code}
-readImports :: IO [(String,[String])]
+type ImportMap  =  Map String (Set String)
+\end{code}
+
+\begin{code}
+readImports :: IO ImportMap
 readImports = do
   dirOk <- checkDirectoryStructure
   if dirOk  -- app/Main.lhs exists, src/ exists
   then do 
-    mainImports <- readModule main_path
-    putStrLn ("main imports: "++show mainImports)
-    putStrLn "readImports NYfI"
-    return [mainImports]
+    (_,mainImports) <- readModule main_path
+    let mainRoot = M.singleton "Main" $ S.fromList mainImports
+    buildImportMap mainRoot mainImports
   else fail "invalid directory structure"
 \end{code}
 
@@ -63,9 +71,17 @@ readModule path = do
 \end{code}
 
 \begin{code}
--- code here
+buildImportMap :: ImportMap -> [String] -> IO ImportMap
+buildImportMap importMap [] = return importMap
+buildImportMap importMap (importName:rest)
+  | importName `M.member` importMap  =  buildImportMap importMap rest
+  | otherwise = do
+      let path = mkpathname importName
+      (modnm,imports) <- readModule path
+      let importMap' = M.insertWith S.union modnm (S.fromList imports) importMap
+      buildImportMap importMap' rest
 \end{code}
 
 \begin{code}
--- code here
+mkpathname path = "src" </> path <.> "lhs" -- for now
 \end{code}

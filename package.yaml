@@ -38,6 +38,7 @@ library:
   dependencies:
   - directory
   - filepath
+  - containers
 
 executables:
   lhsimports:
