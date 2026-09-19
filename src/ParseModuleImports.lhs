@@ -21,8 +21,8 @@ parseModule = fuse . map lineParse . map words . lines
 
 We are interested in the following lines:
 \begin{verbatim}
-module MName1.MName2. .. .MNameK .....
-import MName1.MName2. .. .MNameK
+-- module MName1.MName2. .. .MNameK .....
+-- import MName1.MName2. .. .MNameK
 \end{verbatim}
 We ignore \verb"import" lines with the \verb"qualified" keyword.
 

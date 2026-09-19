@@ -67,7 +67,7 @@ readModule path = do
     return $ parseModule modtext
   else do
     putStrLn ("Path "++path++" does not exist")
-    return ("!",[])
+    return ("",[])
 \end{code}
 
 \begin{code}
@@ -79,9 +79,16 @@ buildImportMap importMap (importName:rest)
       let path = mkpathname importName
       (modnm,imports) <- readModule path
       let importMap' = M.insertWith S.union modnm (S.fromList imports) importMap
-      buildImportMap importMap' rest
+      buildImportMap importMap' (imports++rest)
 \end{code}
 
 \begin{code}
-mkpathname path = "src" </> path <.> "lhs" -- for now
+mkpathname :: FilePath -> FilePath
+mkpathname path = "src" </> fix path <.> "lhs" -- for now
+
+fix :: String -> String
+fix ""  =  ""
+fix (c:cs)
+  | c == '.'   = '/' : fix cs
+  | otherwise  =  c  : fix cs
 \end{code}
