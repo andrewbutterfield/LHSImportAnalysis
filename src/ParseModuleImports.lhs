@@ -16,7 +16,7 @@ where
 
 \begin{code}
 parseModule :: String -> (String,[String])
-parseModule = topParse . map words . lines
+parseModule = fuse . map lineParse . map words . lines
 \end{code}
 
 We are interested in the following lines:
@@ -27,15 +27,10 @@ import MName1.MName2. .. .MNameK
 We ignore \verb"import" lines with the \verb"qualified" keyword.
 
 \begin{code}
-topParse :: [[String]] -> (String,[String])
-topParse ccs = fuse $ map lineParse ccs
-\end{code}
-
-\begin{code}
 lineParse :: [String] -> (String,[String])
-lineParse ("module":modName:_) = (modName,[])
-lineParse ("import":"qualified":modName:_) = ("",[modName])
-lineParse ("import":modName:_) = ("",[modName])
+lineParse ("module":modName:_)              =  (modName,[])
+lineParse ("import":"qualified":modName:_)  =  ("",[modName])
+lineParse ("import":modName:_)              =  ("",[modName])
 lineParse _ = ("",[])
 
 fuse :: [(String,[String])] -> (String,[String])
@@ -44,10 +39,3 @@ fuse [kns]                    = kns
 fuse ((n1,ms1):(n2,ms2):kns)  = fuse ((n1++n2,ms1++ms2):kns)
 \end{code}
 
-\begin{code}
--- code here
-\end{code}
-
-\begin{code}
--- code here
-\end{code}
