@@ -6,7 +6,10 @@ LICENSE: BSD3, see file LICENSE at lhsimport root
 \end{verbatim}
 \begin{code}
 module ReadImports (
-  readImports
+  ModName
+, ImportMap
+, readImports
+, parseModule
 )
 where
 
@@ -24,10 +27,15 @@ import qualified Data.Map as M
 --dbg msg x = trace (msg++show x) x
 \end{code}
 
+\newpage
+\subsection{Reading Imports}
+
 
 \begin{code}
-type ImportMap  =  Map String (Set String)
+type ModName = String
+type ImportMap  =  Map ModName (Set ModName)
 \end{code}
+
 
 \begin{code}
 readImports :: IO ImportMap
@@ -70,34 +78,39 @@ readModule path = do
     return ("",[])
 \end{code}
 
+\newpage
+\subsection{Parsing Modules}
+
 \begin{code}
 parseModule :: String -> (String,[String])
 parseModule = fuse . map lineParse . map words . lines
 \end{code}
 
-We are interested in the following lines:
-\begin{verbatim}
--- module MName1.MName2. .. .MNameK .....
--- import MName1.MName2. .. .MNameK
-\end{verbatim}
-We ignore \verb"import" lines with the \verb"qualified" keyword.
-
+We are interested in the the module names referenced 
+in \texttt{module} and \texttt{import} lines.
 \begin{code}
 lineParse :: [String] -> (String,[String])
 lineParse ("module":modName:_)              =  (modName,[])
 lineParse ("import":"qualified":modName:_)  =  ("",[modName])
 lineParse ("import":modName:_)              =  ("",[modName])
-lineParse _ = ("",[])
+lineParse _                                 =  ("",[])
+\end{code}
 
+This gathers everything up
+\begin{code}
 fuse :: [(String,[String])] -> (String,[String])
 fuse []                       = ("",[])
 fuse [kns]                    = kns
 fuse ((n1,ms1):(n2,ms2):kns)  = fuse ((nfuse n1 n2,ms1++ms2):kns)
+\end{code}
 
+The following is purely defensive, in case ``module'' is mentioned elsewhere,
+e.g., in comments.
+\begin{code}
 nfuse :: String -> String -> String
 nfuse n1 "" = n1
 nfuse "" n2 = n2
-nfuse n1 n2 = n1 ++ '|':n2
+nfuse n1 n2 = n1 ++ '|':n2 -- shouldn't really happen
 \end{code}
 
 
@@ -115,7 +128,7 @@ buildImportMap importMap (importName:rest)
 
 \begin{code}
 mkpathname :: FilePath -> FilePath
-mkpathname path = "src" </> fix path <.> "lhs" -- for now
+mkpathname path = "src" </> fix path <.> "lhs"
 
 fix :: String -> String
 fix ""  =  ""
