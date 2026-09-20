@@ -18,7 +18,7 @@ import qualified Data.Set as S
 import Data.Map(Map)
 import qualified Data.Map as M
 
-import ParseModuleImports
+--import ParseModuleImports
 
 --import Debug.Trace
 --dbg msg x = trace (msg++show x) x
@@ -69,6 +69,37 @@ readModule path = do
     putStrLn ("Path "++path++" does not exist")
     return ("",[])
 \end{code}
+
+\begin{code}
+parseModule :: String -> (String,[String])
+parseModule = fuse . map lineParse . map words . lines
+\end{code}
+
+We are interested in the following lines:
+\begin{verbatim}
+-- module MName1.MName2. .. .MNameK .....
+-- import MName1.MName2. .. .MNameK
+\end{verbatim}
+We ignore \verb"import" lines with the \verb"qualified" keyword.
+
+\begin{code}
+lineParse :: [String] -> (String,[String])
+lineParse ("module":modName:_)              =  (modName,[])
+lineParse ("import":"qualified":modName:_)  =  ("",[modName])
+lineParse ("import":modName:_)              =  ("",[modName])
+lineParse _ = ("",[])
+
+fuse :: [(String,[String])] -> (String,[String])
+fuse []                       = ("",[])
+fuse [kns]                    = kns
+fuse ((n1,ms1):(n2,ms2):kns)  = fuse ((nfuse n1 n2,ms1++ms2):kns)
+
+nfuse :: String -> String -> String
+nfuse n1 "" = n1
+nfuse "" n2 = n2
+nfuse n1 n2 = n1 ++ '|':n2
+\end{code}
+
 
 \begin{code}
 buildImportMap :: ImportMap -> [String] -> IO ImportMap
