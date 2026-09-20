@@ -16,15 +16,31 @@ where
 import System.Directory 
 import System.FilePath
 
-import Data.Set(Set)
+import Data.Set (Set)
 import qualified Data.Set as S
-import Data.Map(Map)
+import Data.Map (Map)
 import qualified Data.Map as M
+import Data.List (isPrefixOf)
 
 --import ParseModuleImports
 
 --import Debug.Trace
 --dbg msg x = trace (msg++show x) x
+\end{code}
+
+\subsection{Cleaning Up Imports}
+
+We are not interested in standard Haskell modules, 
+identifiable as having module names that are/start with any of the following:
+\begin{code}
+standardModules :: Set ModName
+standardModules = S.fromList ["Control","Data","System","Test","Debug"]
+
+isStandard :: ModName -> Bool
+isStandard modname = any (`isPrefixOf` modname) standardModules
+
+removeStd :: [ModName] -> [ModName]
+removeStd = filter (not . isStandard)
 \end{code}
 
 \newpage
@@ -44,8 +60,9 @@ readImports = do
   if dirOk  -- app/Main.lhs exists, src/ exists
   then do 
     (_,mainImports) <- readModule main_path
-    let mainRoot = M.singleton "Main" $ S.fromList mainImports
-    buildImportMap mainRoot mainImports
+    let projectImports = removeStd mainImports
+    let mainRoot = M.singleton "Main" $ S.fromList projectImports
+    buildImportMap mainRoot projectImports
   else fail "invalid directory structure"
 \end{code}
 
@@ -118,11 +135,14 @@ nfuse n1 n2 = n1 ++ '|':n2 -- shouldn't really happen
 buildImportMap :: ImportMap -> [String] -> IO ImportMap
 buildImportMap importMap [] = return importMap
 buildImportMap importMap (importName:rest)
+  | isStandard importName            =  buildImportMap importMap rest
   | importName `M.member` importMap  =  buildImportMap importMap rest
-  | otherwise = do
+  | otherwise = do -- importName is unseen so far, non-standard 
       let path = mkpathname importName
       (modnm,imports) <- readModule path
-      let importMap' = M.insertWith S.union modnm (S.fromList imports) importMap
+      let prjImports = removeStd imports
+      let importMap' 
+            = M.insertWith S.union modnm (S.fromList prjImports) importMap
       buildImportMap importMap' (imports++rest)
 \end{code}
 
@@ -136,3 +156,4 @@ fix (c:cs)
   | c == '.'   = '/' : fix cs
   | otherwise  =  c  : fix cs
 \end{code}
+
