@@ -8,6 +8,7 @@ LICENSE: BSD3, see file LICENSE at lhsimport root
 module Main(main) where
 
 import ReadImports
+import ImportAnalysis
 
 --import Debug.Trace
 --dbg :: Show a => [Char] -> a -> a  ; dbg msg x = trace (msg++show x) x
@@ -30,5 +31,9 @@ main
   = do putStrLn name_version
        imports <- readImports
        putStrLn ("imports: "++show imports)
-       putStrLn "Done."
+       let closedup = tclose imports
+       putStrLn ("closedup: "++show closedup)
+       if imports == closedup
+       then putStrLn "NO CHANGE"
+       else putStrLn "CHANGED!"
 \end{code}
