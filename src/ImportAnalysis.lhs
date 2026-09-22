@@ -71,10 +71,10 @@ process :: ImportMap -> [ModName] -> ImportMap
 process rho [] = rho
 process rho wdom 
   = let
-      lookups = map (slookup rho) $ pdbg "wdom" wdom
-      newmaps = M.fromList $ zip wdom lookups
-      nu = M.unionWith S.union rho newmaps
-      wdom' = M.keys nu \\ wdom 
+      lookups = map (slookup rho) wdom
+      newmaps = map (step rho) (zip wdom lookups)
+      nu = M.unionWith S.union rho $ M.unionsWith S.union newmaps
+      wdom' = changed rho nu
     in process nu wdom'
 
 slookup :: ImportMap -> ModName -> Set ModName
@@ -82,5 +82,40 @@ slookup rho n
   = case M.lookup n rho of
       Nothing        ->  S.empty
       Just modnames  ->  modnames
+
+step :: ImportMap -> (ModName,Set ModName) -> ImportMap
+step rho (key,names)
+  = let
+      extend = map (slookup rho) $ S.toList names
+      flatten = S.unions extend
+    in M.fromList [(key,flatten)]
+
+changed :: ImportMap -> ImportMap -> [ModName]
+changed rho nu = chgd (M.assocs rho) (M.assocs nu)
+
+chgd []  nu    =  map fst nu
+chgd rho []    =  []
+chgd rho@((k1,s1):rho') nu@((k2,s2):nu')
+  | k1 < k2    =       chgd rho' nu 
+  | k2 < k1    =  k2 : chgd rho nu'
+  | otherwise  =  k2 : chgd rho' nu'
+\end{code}
+
+Tests:
+\begin{code}
+[a,b,c,d] = ["A","B","C","D"]
+a2b = (a,S.fromList [b])
+b2c = (b,S.fromList [c])
+c2d = (c,S.fromList [d])
+
+b2cd = (b,S.fromList [c,d])
+
+ma2b2c = M.fromList [a2b,b2c]
+
+matod = M.fromList [a2b,b2c,c2d]
+
+mb2cd = M.fromList [a2b,b2cd]
+
+-- mapsnd f (a,b) = (a,f b)
 \end{code}
 
