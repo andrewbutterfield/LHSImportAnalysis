@@ -21,8 +21,7 @@ import Data.List ((\\),delete,isPrefixOf)
 
 import ReadImports
 
---import Debug.Trace
---dbg msg x = trace (msg++show x) x
+import Debugger
 \end{code}
 
 We start with basic sanity checking: no loops in import graph.
@@ -72,7 +71,7 @@ process :: ImportMap -> [ModName] -> ImportMap
 process rho [] = rho
 process rho wdom 
   = let
-      lookups = map (slookup rho) wdom
+      lookups = map (slookup rho) $ pdbg "wdom" wdom
       newmaps = M.fromList $ zip wdom lookups
       nu = M.unionWith S.union rho newmaps
       wdom' = M.keys nu \\ wdom 
