@@ -112,13 +112,27 @@ matod = M.fromList [a2b,b2c,c2d]
 
 mb2cd = M.fromList [a2b,b2cd]
 
+ex0 = mmap [mlet a [b],mlet b [c,d],mlet d [e]]
+
 ex1 = mmap [mlet a [b],mlet b [c,d],mlet c [],mlet d [e],mlet e []]
 
 ex2 = mmap [mlet a [b],mlet b [a,c,d],mlet c [],mlet d [e],mlet e []]
 
+-- BUG FOUND
+-- fromList [("A",fromList ["A","B","C","D"]) -- should have E too
+--          ,("B",fromList ["A","B","C","D","E"])
+--          ,("C",fromList [])
+--          ,("D",fromList ["E"])
+--          ,("E",fromList [])]
+
 ex3 = mmap [mlet a [b],mlet b [c,d],mlet c [],mlet d [e],mlet e [a]]
 
-
+-- CORRECT
+-- fromList [("A",fromList ["A","B","C","D","E"])
+--           ,("B",fromList ["A","B","C","D","E"])
+--           ,("C",fromList [])
+--           ,("D",fromList ["A","B","C","D","E"])
+--          ,("E",fromList ["A","B","C","D","E"])]
 -- mapsnd f (a,b) = (a,f b)
 \end{code}
 
