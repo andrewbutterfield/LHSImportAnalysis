@@ -65,45 +65,19 @@ Rinse and repeat until the regenerated working domain becomes empty.
 
 \begin{code}
 tclose :: ImportMap -> ImportMap
-tclose rho  =  process rho (M.keys rho)
-
-process :: ImportMap -> [ModName] -> ImportMap
-process rho [] = rho
-process rho wdom 
-  = let
-      lookups = map (slookup rho) wdom
-      newmaps = map (step rho) (zip wdom lookups)
-      nu = M.unionWith S.union rho $ M.unionsWith S.union newmaps
-      wdom' = changed rho nu
-    in process nu wdom'
-
-slookup :: ImportMap -> ModName -> Set ModName
-slookup rho n 
-  = case M.lookup n rho of
-      Nothing        ->  S.empty
-      Just modnames  ->  modnames
-
-step :: ImportMap -> (ModName,Set ModName) -> ImportMap
-step rho (key,names)
-  = let
-      extend = map (slookup rho) $ S.toList names
-      flatten = S.unions extend
-    in M.fromList [(key,flatten)]
-
-changed :: ImportMap -> ImportMap -> [ModName]
-changed rho nu = chgd (M.assocs rho) (M.assocs nu)
-
-chgd []  nu    =  map fst nu
-chgd rho []    =  []
-chgd rho@((k1,s1):rho') nu@((k2,s2):nu')
-  | k1 < k2    =       chgd rho' nu 
-  | k2 < k1    =  k2 : chgd rho nu'
-  | otherwise  =  k2 : chgd rho' nu'
+tclose rho  =  rho
 \end{code}
 
 Tests:
 \begin{code}
-[a,b,c,d] = ["A","B","C","D"]
+[a,b,c,d,e] = ["A","B","C","D","E"]
+mlet :: ModName -> [ModName] -> ImportMap 
+mlet x ys = M.fromList [(x,S.fromList ys)]
+mnull x = mlet x []
+mmap =  M.unionsWith S.union
+-- totalise m = mmap ( m : map mnull (M.elems m) )
+
+
 a2b = (a,S.fromList [b])
 b2c = (b,S.fromList [c])
 c2d = (c,S.fromList [d])
@@ -115,6 +89,13 @@ ma2b2c = M.fromList [a2b,b2c]
 matod = M.fromList [a2b,b2c,c2d]
 
 mb2cd = M.fromList [a2b,b2cd]
+
+ex1 = mmap [mlet a [b],mlet b [c,d],mlet c [],mlet d [e],mlet e []]
+
+ex2 = mmap [mlet a [b],mlet b [a,c,d],mlet c [],mlet d [e],mlet e []]
+
+ex3 = mmap [mlet a [b],mlet b [c,d],mlet c [],mlet d [e],mlet e [a]]
+
 
 -- mapsnd f (a,b) = (a,f b)
 \end{code}
