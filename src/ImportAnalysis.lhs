@@ -17,7 +17,7 @@ import Data.Set (Set)
 import qualified Data.Set as S
 -- import Data.Map (Map)
 import qualified Data.Map as M
-import Data.List ((\\),delete,isPrefixOf)
+import Data.List ((\\),delete,isPrefixOf,nub)
 
 import ReadImports
 
@@ -64,8 +64,29 @@ Rinse and repeat until the regenerated working domain becomes empty.
 
 
 \begin{code}
+slookup :: ImportMap -> ModName -> Set ModName
+slookup rho n 
+  = case M.lookup n rho of
+      Nothing        ->  S.empty
+      Just modnames  ->  modnames
+\end{code}
+
+\begin{code}
 tclose :: ImportMap -> ImportMap
-tclose rho  =  rho
+tclose rho  =  tcl (allnodes rho) $ totalise rho
+tcl :: [ModName] -> ImportMap -> ImportMap
+tcl [] rho = rho
+tcl (n:ns) rho
+  = let 
+      rho_n = slookup rho n 
+      rho2_n = S.unions $ map (slookup rho) $ S.toList rho_n
+      rho'_n = rho_n `S.union` rho2_n
+      rho' = M.insert n rho'_n rho
+    in if n `S.member` rho'_n 
+       then tcl ns rho'
+       else if rho'_n == rho_n 
+            then tcl ns rho
+            else tcl (n:ns) rho'
 \end{code}
 
 Tests:
@@ -74,9 +95,10 @@ Tests:
 mlet :: ModName -> [ModName] -> ImportMap 
 mlet x ys = M.fromList [(x,S.fromList ys)]
 mnull x = mlet x []
+mrng m = concat $ map S.toList $ M.elems m
 mmap =  M.unionsWith S.union
--- totalise m = mmap ( m : map mnull (M.elems m) )
-
+totalise m = mmap ( m : map mnull (mrng m) )
+allnodes m = nub (M.keys m ++ mrng m)
 
 a2b = (a,S.fromList [b])
 b2c = (b,S.fromList [c])
