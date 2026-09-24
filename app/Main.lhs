@@ -32,7 +32,7 @@ main
        imports <- readImports
        putStrLn ("imports: "++show imports)
        let closedup = tclose imports
-       putStrLn ("closedup: "++show closedup)
+       putStrLn ("\nclosedup: "++show closedup)
        if imports == closedup
        then putStrLn "NO CHANGE"
        else putStrLn "CHANGED!"
