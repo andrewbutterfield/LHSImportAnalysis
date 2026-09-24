@@ -82,11 +82,9 @@ tcl (n:ns) rho
       rho2_n = S.unions $ map (slookup rho) $ S.toList rho_n
       rho'_n = rho_n `S.union` rho2_n
       rho' = M.insert n rho'_n rho
-    in if n `S.member` rho'_n 
-       then tcl ns rho'
-       else if rho'_n == rho_n 
-            then tcl ns rho
-            else tcl (n:ns) rho'
+    in if rho'_n == rho_n 
+        then tcl ns rho
+        else tcl (n:ns) rho'
 \end{code}
 
 Tests:
@@ -118,21 +116,10 @@ ex1 = mmap [mlet a [b],mlet b [c,d],mlet c [],mlet d [e],mlet e []]
 
 ex2 = mmap [mlet a [b],mlet b [a,c,d],mlet c [],mlet d [e],mlet e []]
 
--- BUG FOUND
--- fromList [("A",fromList ["A","B","C","D"]) -- should have E too
---          ,("B",fromList ["A","B","C","D","E"])
---          ,("C",fromList [])
---          ,("D",fromList ["E"])
---          ,("E",fromList [])]
-
 ex3 = mmap [mlet a [b],mlet b [c,d],mlet c [],mlet d [e],mlet e [a]]
 
--- CORRECT
--- fromList [("A",fromList ["A","B","C","D","E"])
---           ,("B",fromList ["A","B","C","D","E"])
---           ,("C",fromList [])
---           ,("D",fromList ["A","B","C","D","E"])
---          ,("E",fromList ["A","B","C","D","E"])]
--- mapsnd f (a,b) = (a,f b)
+ex4 = mmap [mlet a [b],mlet b [c],mlet c [d],mlet d [b,e]]
+
+ex5 = mmap [mlet a [b],mlet e [d],mlet c [a],mlet d [e],mlet b [c]]
 \end{code}
 
