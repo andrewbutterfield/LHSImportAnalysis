@@ -10,6 +10,7 @@ module ReadImports (
 , ImportMap
 , readImports
 , parseModule
+, prettyImports
 )
 where
 
@@ -200,3 +201,21 @@ fix (c:cs)
   | otherwise  =  c  : fix cs
 \end{code}
 
+\newpage
+\subsection{Displaying Imports}
+
+
+\begin{code}
+prettyImports :: Int -> ImportMap -> String
+prettyImports _ m = concat $ map ppModule (M.assocs m)
+
+ppModule :: (ModName,Set ModName) -> String
+ppModule (n,imps)
+  | S.null imps = "\n"++n++" - no local imports."
+  | otherwise = unlines 
+    [ ""
+    , n 
+    , " <-- " ++ (intercalate " ; " $ S.toList imps)
+    ]
+\end{code}
+ 

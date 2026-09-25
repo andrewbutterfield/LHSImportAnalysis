@@ -10,9 +10,7 @@ module Main(main) where
 import ReadImports
 import ImportAnalysis
 
---import Debug.Trace
---dbg :: Show a => [Char] -> a -> a  ; dbg msg x = trace (msg++show x) x
---pdbg :: Show a => [Char] -> a -> a ; pdbg nm x = dbg ('@':nm++":\n") x
+import Debugger
 \end{code}
 
 \subsection{Version}
@@ -30,10 +28,9 @@ main :: IO ()
 main
   = do putStrLn name_version
        imports <- readImports
-       putStrLn ("imports: "++show imports)
+       putStrLn $ prettyImports 80 imports
        let closedup = tclose imports
-       putStrLn ("\nclosedup: "++show closedup)
        if imports == closedup
-       then putStrLn "NO CHANGE"
-       else putStrLn "CHANGED!"
+       then putStrLn "Closure: NO CHANGE"
+       else putStrLn "Closure: CHANGED!"
 \end{code}
