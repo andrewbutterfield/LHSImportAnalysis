@@ -20,15 +20,26 @@ import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf,intercalate)
 
---import ParseModuleImports
-
---import Debug.Trace
---dbg msg x = trace (msg++show x) x
+import Debugger
 \end{code}
 
-\subsection{Cleaning Up Imports}
+\subsection{Module Import Types}
+
+\begin{code}
+type ModName = String
+type ImportMap  =  Map ModName (Set ModName)
+\end{code}
+
+\subsection{Identifying Interesting Imports}
+
+We assume the program mainline lives in the ``app'' folder,
+and that we have the following source folders as default:
+\begin{code}
+defaultSrcDirs :: [String]
+defaultSrcDirs = ["builtin","src"]  -- for now
+\end{code}
 
 We are not interested in standard Haskell modules, 
 identifiable as having module names that are/start with any of the following:
@@ -48,35 +59,42 @@ removeStd = filter (not . isStandard)
 
 
 \begin{code}
-type ModName = String
-type ImportMap  =  Map ModName (Set ModName)
-\end{code}
-
-
-\begin{code}
 readImports :: IO ImportMap
 readImports = do
-  dirOk <- checkDirectoryStructure
-  if dirOk  -- app/Main.lhs exists, src/ exists
+  (dirOk,srcdirs) <- checkDirectoryStructure
+  if dirOk && not (null srcdirs) -- app/Main.lhs exists, source-dirs exists
   then do 
     (_,mainImports) <- readModule main_path
     let projectImports = removeStd mainImports
     let mainRoot = M.singleton "Main" $ S.fromList projectImports
-    buildImportMap mainRoot projectImports
+    putStrLn $ unlines
+      [ "Building Import Map"
+      , "Source Directories: " ++ show srcdirs
+      , "Main Imports: " ++ show mainImports
+      , "Project Imports: "  ++ show projectImports
+      ]
+    buildImportMap srcdirs mainRoot projectImports
   else fail "invalid directory structure"
 \end{code}
 
 
 \begin{code}
-checkDirectoryStructure :: IO Bool
+checkDirectoryStructure :: IO (Bool,[String])
 checkDirectoryStructure = do
   has_app <- doesDirectoryExist "app"
   putStrLn ("'app' directory present? "++show has_app) 
   has_Main <- doesFileExist main_path
   putStrLn ("'app/Main.lhs' directory present? "++show has_Main) 
-  has_src <- doesDirectoryExist "src"
-  putStrLn ("'src' directory present? "++show has_src) 
-  return $ and [has_app,has_Main,has_src]
+  available_src_dirs <- availableSourceDirectories defaultSrcDirs
+  putStrLn ("Available source directories: "++show available_src_dirs) 
+  return (and [has_app,has_Main],available_src_dirs)
+
+availableSourceDirectories :: [String] -> IO [String]
+availableSourceDirectories [] = return []
+availableSourceDirectories (d:ds) = do
+  has_d <- doesDirectoryExist d
+  avail_ds <- availableSourceDirectories ds
+  if has_d then return (d:avail_ds) else return avail_ds
 
 main_path :: FilePath
 main_path = "app" </> "Main" <.> "lhs"
@@ -90,9 +108,7 @@ readModule path = do
     putStrLn ("Reading Module at "++path)
     modtext <- readFile path
     return $ parseModule modtext
-  else do
-    putStrLn ("Path "++path++" does not exist")
-    return ("",[])
+  else return ("",[])
 \end{code}
 
 \newpage
@@ -132,23 +148,50 @@ nfuse n1 n2 = n1 ++ '|':n2 -- shouldn't really happen
 
 
 \begin{code}
-buildImportMap :: ImportMap -> [String] -> IO ImportMap
-buildImportMap importMap [] = return importMap
-buildImportMap importMap (importName:rest)
-  | isStandard importName            =  buildImportMap importMap rest
-  | importName `M.member` importMap  =  buildImportMap importMap rest
+buildImportMap :: [String] -> ImportMap -> [ModName] -> IO ImportMap
+buildImportMap _ importMap [] = return importMap
+buildImportMap sdirs importMap (importName:rest)
+  | isStandard importName            =  buildImportMap sdirs importMap rest
+  | importName `M.member` importMap  =  buildImportMap sdirs importMap rest
   | otherwise = do -- importName is unseen so far, non-standard 
-      let path = mkpathname importName
-      (modnm,imports) <- readModule path
-      let prjImports = removeStd imports
-      let importMap' 
-            = M.insertWith S.union modnm (S.fromList prjImports) importMap
-      buildImportMap importMap' (imports++rest)
+    (importMap',more_imports) <- getImportedModule importName importMap sdirs
+    buildImportMap sdirs importMap' (more_imports++rest)
+\end{code}
+
+To get an imported module, we need to search the available source directories.
+\begin{code}
+getImportedModule :: ModName -> ImportMap -> [String] 
+                  -> IO (ImportMap,[ModName])
+getImportedModule  importName importMap []  = return (importMap,[])
+getImportedModule  importName importMap (sdir:sdirs) = do
+  (ok,importMap1,more1) <- addImportedModule sdir importName importMap
+  if ok then do
+    let path = mkpathname sdir importName
+    (modnm,imports) <- readModule path
+    let prjImports = removeStd imports
+    let importMap' 
+          = M.insertWith S.union modnm (S.fromList prjImports) importMap
+    return (importMap',prjImports)
+  else getImportedModule  importName importMap sdirs
 \end{code}
 
 \begin{code}
-mkpathname :: FilePath -> FilePath
-mkpathname path = "src" </> fix path <.> "lhs"
+addImportedModule :: String -> ModName -> ImportMap 
+                  -> IO (Bool,ImportMap,[ModName])
+addImportedModule srcdir importName importMap = do
+  let path = mkpathname srcdir importName
+  (modnm,imports) <- readModule path
+  if null modnm then return (False,importMap,[])
+  else do
+    let prjImports = removeStd imports
+    let importMap' 
+          = M.insertWith S.union modnm (S.fromList prjImports) importMap
+    return (True,importMap',prjImports)
+\end{code}
+
+\begin{code}
+mkpathname :: String -> FilePath -> FilePath
+mkpathname srcdir path = srcdir </> fix path <.> "lhs"
 
 fix :: String -> String
 fix ""  =  ""
