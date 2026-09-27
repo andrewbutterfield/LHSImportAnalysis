@@ -28,7 +28,9 @@ main :: IO ()
 main
   = do putStrLn name_version
        imports <- readImports
-       putStrLn $ prettyImports 80 imports
+       let termw = 80
+       putStrLn $ replicate termw '='
+       putStrLn $ prettyImports termw imports
        let closedup = tclose imports
        if imports == closedup
        then putStrLn "Closure: NO CHANGE"

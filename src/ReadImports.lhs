@@ -207,15 +207,15 @@ fix (c:cs)
 
 \begin{code}
 prettyImports :: Int -> ImportMap -> String
-prettyImports _ m = concat $ map ppModule (M.assocs m)
+prettyImports w m = concat $ map (ppModule w) (M.assocs m)
 
-ppModule :: (ModName,Set ModName) -> String
-ppModule (n,imps)
+ppModule :: Int -> (ModName,Set ModName) -> String
+ppModule _ (n,imps)
   | S.null imps = "\n"++n++" - no local imports."
   | otherwise = unlines 
     [ ""
-    , n 
-    , " <-- " ++ (intercalate " ; " $ S.toList imps)
+    , n ++ ":"
+    , "  " ++ (intercalate " " $ S.toList imps)
     ]
 \end{code}
  
