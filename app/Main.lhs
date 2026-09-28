@@ -7,6 +7,11 @@ LICENSE: BSD3, see file LICENSE at lhsimport root
 \begin{code}
 module Main(main) where
 
+import System.Console.Haskeline
+import System.IO
+import System.Process
+import Control.Monad.IO.Class
+import Data.Char
 import ReadImports
 import ImportAnalysis
 
@@ -28,11 +33,31 @@ main :: IO ()
 main
   = do putStrLn name_version
        imports <- readImports
-       let termw = 80
+       termw <- liftIO getDisplayWidth
        putStrLn $ replicate termw '='
        putStrLn $ prettyImports termw imports
        let closedup = tclose imports
        if imports == closedup
        then putStrLn "Closure: NO CHANGE"
        else putStrLn "Closure: CHANGED!"
+\end{code}
+
+\begin{code}
+getDisplayWidth :: IO Int
+getDisplayWidth = do
+  system ( "tput cols > " ++ tpc )
+  colstxt <- readFile tpc
+  let dw = readNat $ trim colstxt
+  return $ if dw > 0 then dw else 80
+tpc = ".tput_cols"
+\end{code}
+
+\begin{code}
+trim :: String -> String
+trim = ltrim . reverse . ltrim . reverse where ltrim = dropWhile isSpace
+readNat :: String -> Int
+readNat str
+ | null str         =   -1
+ | all isDigit str  =   read str
+ | otherwise        =   -1
 \end{code}
