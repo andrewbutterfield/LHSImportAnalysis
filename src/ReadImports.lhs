@@ -210,12 +210,28 @@ prettyImports :: Int -> ImportMap -> String
 prettyImports w m = concat $ map (ppModule w) (M.assocs m)
 
 ppModule :: Int -> (ModName,Set ModName) -> String
-ppModule _ (n,imps)
+ppModule w (n,imps)
   | S.null imps = "\n"++n++" - no local imports."
   | otherwise = unlines 
-    [ ""
-    , n ++ ":"
-    , "  " ++ (intercalate " " $ S.toList imps)
-    ]
+    ( [ ""
+      , n ++ ":" ] 
+      ++ map ("  "++) (ppImportedNames (w-2) (S.toList imps))
+    )
+
+ppImportedNames :: Int -> [ModName] -> [ModName]
+ppImportedNames w modnames = ppImpNames w 0 [] $ map addLen modnames
+
+addLen :: ModName -> (Int,ModName)
+addLen m = (length m,m)
+
+ppImpNames :: Int -> Int -> [ModName] -> [(Int,ModName)] -> [String]
+ppImpNames w currlen rafos [] = [intercalate " " (reverse rafos)]
+ppImpNames w currlen rafos ((size,n):lns)
+  | newlen <= w  =  ppImpNames w newlen (n:rafos) lns 
+  | otherwise  =  (intercalate " " (reverse rafos))
+                  : ppImpNames w size [n] lns
+  where 
+    reqd = if null rafos then size else size+1 
+    newlen = currlen + reqd 
 \end{code}
  
