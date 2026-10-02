@@ -37,9 +37,11 @@ main
        putStrLn $ replicate termw '='
        putStrLn $ prettyImports termw imports
        let closedup = tclose imports
-       if imports == closedup
-       then putStrLn "Closure: NO CHANGE"
-       else putStrLn "Closure: CHANGED!"
+       showClosureChanges termw imports closedup
+       let loops = showImportLoops termw closedup
+       if null loops 
+       then putStrLn "\nNo Import Loops\n"
+       else putStrLn ("\nIMPORT LOOPS (!)\n"++loops)
 \end{code}
 
 \begin{code}
@@ -60,4 +62,15 @@ readNat str
  | null str         =   -1
  | all isDigit str  =   read str
  | otherwise        =   -1
+\end{code}
+
+\begin{code}
+showClosureChanges :: Int -> ImportMap -> ImportMap -> IO ()
+showClosureChanges w imports closedup = do
+  putStr "\nClosure: "
+  if imports == closedup
+  then putStrLn "NO CHANGE"
+  else do 
+    putStrLn "CHANGED!"
+    putStrLn $ reportChanges w imports closedup
 \end{code}

@@ -11,6 +11,7 @@ module ReadImports (
 , readImports
 , parseModule
 , prettyImports
+, ppImportedNames
 )
 where
 

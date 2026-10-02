@@ -7,6 +7,8 @@ LICENSE: BSD3, see file LICENSE at lhsimport root
 \begin{code}
 module ImportAnalysis (
   tclose
+, reportChanges
+, showImportLoops
 )
 where
 
@@ -17,7 +19,7 @@ import Data.Set (Set)
 import qualified Data.Set as S
 -- import Data.Map (Map)
 import qualified Data.Map as M
-import Data.List ((\\),delete,isPrefixOf,nub)
+import Data.List ((\\),delete,isPrefixOf,nub,intercalate)
 
 import ReadImports
 
@@ -87,7 +89,61 @@ tcl (n:ns) rho
         else tcl (n:ns) rho'
 \end{code}
 
-Tests:
+\subsection{Change Reporting}
+
+\begin{code}
+reportChanges :: Int -> ImportMap -> ImportMap -> String
+reportChanges w original closed 
+  = showDelta w [] (M.assocs original) (M.assocs closed)
+  
+showDelta :: Int -> [String] 
+          -> [(ModName,Set ModName)] -> [(ModName,Set ModName)] 
+          -> String
+showDelta _ stroper [] [] = unlines $ reverse stroper
+showDelta _ stroper [] closed 
+  = unlines $ reverse ("Extra modules in 2nd":stroper) 
+showDelta _ stroper original []  
+  = unlines $ reverse ("Extra modules in 1st":stroper)
+showDelta w stroper orig@((n1,set1):rest1) clsd@((n2,set2):rest2)
+  | n1 < n2       =  showDelta w (only1 n1:stroper)        rest1 clsd
+  | n1 > n2       =  showDelta w (only2 n2:stroper)        orig  rest2
+  | set1 == set2  =  showDelta w stroper                   rest1 rest2
+  | otherwise     =  showDelta w (sdiff n1 set1 set2:stroper) rest1 rest2
+  where
+   only1 n        =  n++": original only!"
+   only2 n        =  n++": closed only!"
+   sdiff n s1 s2  
+     =  n++" += "
+         ++ (show $ length closedXtra)
+        --  ++(intercalate " " $ ppImportedNames (w-(length n+4)) closedXtra)
+         ++ wierd
+     where 
+       closedXtra = S.toList (s2 S.\\ s1)
+       importXtra = S.toList (s1 S.\\ s2)
+       wierd =
+         if null importXtra then ""
+         else "\nWIERD: import -= "++show importXtra
+\end{code}
+
+\subsection{Import Cycle Reporting}
+
+\begin{code}
+showImportLoops :: Int -> ImportMap -> String
+showImportLoops w closedup  =  showLoops w [] $ M.assocs closedup
+
+showLoops w spool [] = unlines $ reverse spool
+showLoops w spool ((n,set):rest)
+  | n `S.member` set  =  showLoops w (dispLoop : spool) rest
+  | otherwise         =  showLoops w                   spool  rest
+  where 
+    list = S.toList set
+    loopnames = intercalate " " $ ppImportedNames (w-(length n+6)) list
+    dispLoop = n ++ " loops " ++ loopnames
+\end{code}
+
+\subsection{Analysis Tests}
+
+
 \begin{code}
 [a,b,c,d,e] = ["A","B","C","D","E"]
 mlet :: ModName -> [ModName] -> ImportMap 
